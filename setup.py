@@ -14,6 +14,10 @@ get_directive_defaults()['language_level'] = 3
 def is_macos():
     return platform.system() == 'Darwin'
 
+def is_using_apple_clang():
+    result = subprocess.run(['cc', '--version'], capture_output=True)
+    return 'Apple clang' in str(result.stdout)
+
 def get_xcode_version():
     result = subprocess.run(['xcodebuild', '-version'], capture_output=True, text=True)
     version_line = result.stdout.split('\n')[0]
@@ -47,6 +51,8 @@ def get_version(rel_path):
 # Hopefully the availability of wheels for MacOS systems will prevent too many users suffering
 openmp_module_source = "openmp/openmp_real"
 openmp_args = ['-fopenmp']
+if is_macos() and is_using_apple_clang():
+    openmp_args = ['-lomp', '-Xpreprocessor'] + openmp_args
 
 ext_modules = []
 libraries=[ ]
@@ -125,7 +131,7 @@ util_pyx = Extension('pynbody.util._util',
 filt_geom_pyx = Extension('pynbody.filt.geometry_selection',
                      sources=['pynbody/filt/geometry_selection.pyx'],
                      include_dirs=incdir,
-                     extra_compile_args=openmp_args,
+                     extra_compile_args=openmp_args + ['-std=c++14'],
                      extra_link_args=extra_link_args,
                      language='c++')
 
