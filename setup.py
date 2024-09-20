@@ -50,9 +50,10 @@ def get_version(rel_path):
 #
 # Hopefully the availability of wheels for MacOS systems will prevent too many users suffering
 openmp_module_source = "openmp/openmp_real"
-openmp_args = ["-Xpreprocessor", "-fopenmp"]
+openmp_args = ["-lomp", "-Xpreprocessor", "-fopenmp", "-std=c++14"]
 
 ext_modules = []
+library_dirs = []
 libraries = []
 extra_compile_args = [
     "-ftree-vectorize",
@@ -93,6 +94,7 @@ kdmain = Extension(
     libraries=libraries,
     extra_compile_args=extra_compile_args,
     extra_link_args=extra_link_args,
+    language="c++",
 )
 
 ext_modules.append(kdmain)
@@ -103,6 +105,8 @@ gravity = Extension(
     include_dirs=incdir,
     extra_compile_args=openmp_args,
     extra_link_args=extra_link_args,
+    library_dirs=library_dirs,
+    language="c++",
 )
 
 omp_commands = Extension(
@@ -111,14 +115,21 @@ omp_commands = Extension(
     include_dirs=incdir,
     extra_compile_args=openmp_args,
     extra_link_args=extra_link_args,
+    language="c++",
 )
 
 chunkscan = Extension(
-    "pynbody.chunk.scan", sources=["pynbody/chunk/scan.pyx"], include_dirs=incdir
+    "pynbody.chunk.scan",
+    sources=["pynbody/chunk/scan.pyx"],
+    include_dirs=incdir,
+    language="c++",
 )
 
 sph_render = Extension(
-    "pynbody.sph._render", sources=["pynbody/sph/_render.pyx"], include_dirs=incdir
+    "pynbody.sph._render",
+    sources=["pynbody/sph/_render.pyx"],
+    include_dirs=incdir,
+    language="c++",
 )
 
 halo_pyx = Extension(
@@ -127,12 +138,14 @@ halo_pyx = Extension(
     include_dirs=incdir,
     extra_compile_args=openmp_args,
     extra_link_args=extra_link_args,
+    language="c++",
 )
 
 bridge_pyx = Extension(
     "pynbody.bridge._bridge",
     sources=["pynbody/bridge/_bridge.pyx"],
     include_dirs=incdir,
+    language="c++",
 )
 
 util_pyx = Extension(
@@ -141,6 +154,7 @@ util_pyx = Extension(
     include_dirs=incdir,
     extra_compile_args=openmp_args,
     extra_link_args=extra_link_args,
+    language="c++",
 )
 
 filt_geom_pyx = Extension(
@@ -156,6 +170,7 @@ cython_fortran_file = Extension(
     "pynbody.extern._cython_fortran_utils",
     sources=["pynbody/extern/_cython_fortran_utils.pyx"],
     include_dirs=incdir,
+    language="c++",
 )
 
 
@@ -165,6 +180,7 @@ interpolate3d_pyx = Extension(
     include_dirs=incdir,
     extra_compile_args=openmp_args,
     extra_link_args=openmp_args,
+    language="c++",
 )
 
 
