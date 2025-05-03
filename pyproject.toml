@@ -1,39 +1,87 @@
 [project]
 name = "pynbody"
-dynamic = ["version", "readme", "requires-python", "authors", "dependencies", "optional-dependencies"]
+description = "Astronomical N-body/SPH analysis for python"
+version = "2.1.1"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "The pynbody team", email = "pynbody@googlegroups.com" }]
+license = "GPL-3.0-or-later"
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering :: Astronomy",
+  "Topic :: Scientific/Engineering :: Visualization",
+]
+dependencies = [
+  "h5py>=3.0.0",
+  "matplotlib>=3.0.0",
+  "numpy>=2",
+  "scipy>=1.0.0",
+  "posix-ipc>=1.1.0",
+]
+
+[project.urls]
+source = "https://github.com/pynbody/pynbody.git"
+download = "https://github.com/pynbody/pynbody/releases"
+issues = "https://github.com/pynbody/pynbody/issues"
+
+[dependency-groups]
+docs = [
+  "camb>=1.6.0",
+  "ipython>=3",
+  "nbsphinx>=0.9.7",
+  "numpydoc>=1.8.0",
+  "sphinx>=7,<8.2.0",
+  "sphinx-book-theme>=1.1.4",
+  "sphinx-copybutton>=0.5.2",
+]
+tests = [
+  "camb>=1.6.0",
+  "healpy>=1.18.1",
+  "ipython>=9.2.0",
+  "pandas>=2.2.3",
+  "pytest>=8.3.5",
+]
 
 [build-system]
-requires = ["setuptools", "wheel", "numpy>=2.0.0rc1", "cython"]
-
-[tool.pytest.ini_options]
-testpaths = ['tests']
-filterwarnings = [
-    "error",
-    # Ignore Warnings thrown by RAMSES when namelist cannot be read
-    'ignore:No header file found -- no particle block information available:UserWarning',
-    'ignore:No namelist file found\.:UserWarning',
-    'ignore:Namelist found but unable to read\.:UserWarning',
-    'ignore:Namelist file either not found or unable to read.*assuming flat LCDM:UserWarning',
-    'ignore:More hydro variables.*:RuntimeWarning',
-    # ignore other common farily harmless scenarios:
-    'ignore:Conjoining derived and non-derived arrays.*:RuntimeWarning',
-    'ignore:invalid value encountered in multiply:RuntimeWarning',
-    # ignore deprecation warnings triggered by h5py with python 3.12
-    'ignore:datetime.datetime.utcfromtimestamp\(\) is deprecated:DeprecationWarning',
-    # ignore integration warnings which come up
-    'ignore:The occurrence of roundoff error:UserWarning'
-  ]
-
-[tool.isort]
-profile = "black"
-combine_as_imports = true
-known_third_party = [
-  "IPython",
-  "numpy",
-  "matplotlib",
-  "pytest",
+build-backend = "mesonpy"
+requires = [
+  "meson-python",
+  "cython>=0.20",
+  "numpy>=2",
 ]
-known_first_party = [
-  "pynbody",
-]
-sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+
+# [tool.pytest.ini_options]
+# testpaths = ['tests']
+# filterwarnings = [
+#     "error",
+#     # Ignore Warnings thrown by RAMSES when namelist cannot be read
+#     'ignore:No header file found -- no particle block information available:UserWarning',
+#     'ignore:No namelist file found\.:UserWarning',
+#     'ignore:Namelist found but unable to read\.:UserWarning',
+#     'ignore:Namelist file either not found or unable to read.*assuming flat LCDM:UserWarning',
+#     'ignore:More hydro variables.*:RuntimeWarning',
+#     # ignore other common farily harmless scenarios:
+#     'ignore:Conjoining derived and non-derived arrays.*:RuntimeWarning',
+#     'ignore:invalid value encountered in multiply:RuntimeWarning',
+#     # ignore deprecation warnings triggered by h5py with python 3.12
+#     'ignore:datetime.datetime.utcfromtimestamp\(\) is deprecated:DeprecationWarning',
+#     # ignore integration warnings which come up
+#     'ignore:The occurrence of roundoff error:UserWarning'
+#   ]
+
+# [tool.isort]
+# profile = "black"
+# combine_as_imports = true
+# known_third_party = [
+#   "IPython",
+#   "numpy",
+#   "matplotlib",
+#   "pytest",
+# ]
+# known_first_party = [
+#   "pynbody",
+# ]
+# sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]

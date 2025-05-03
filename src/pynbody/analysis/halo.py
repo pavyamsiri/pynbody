@@ -17,12 +17,18 @@ import numpy as np
 from .. import array, config, filt, transformation, units, util
 from . import _com, cosmology, profile
 
-logger = logging.getLogger('pynbody.analysis.halo')
+logger = logging.getLogger("pynbody.analysis.halo")
 
 
-def shrink_sphere_center(sim, r=None, shrink_factor=0.7, min_particles=100,
-                         num_threads = None, particles_for_velocity = 0,
-                         families_for_velocity = ['dm', 'star']):
+def shrink_sphere_center(
+    sim,
+    r=None,
+    shrink_factor=0.7,
+    min_particles=100,
+    num_threads=None,
+    particles_for_velocity=0,
+    families_for_velocity=["dm", "star"],
+):
     """
     Return the center according to the shrinking-sphere method of Power et al (2003)
 
@@ -66,10 +72,9 @@ def shrink_sphere_center(sim, r=None, shrink_factor=0.7, min_particles=100,
     """
 
     if num_threads is None:
-        num_threads = config['number_of_threads']
+        num_threads = config["number_of_threads"]
 
     if r is None:
-
         # use rough estimate for a maximum radius
         # results will be insensitive to the exact value chosen
         r = (sim["x"].max() - sim["x"].min()) / 2
@@ -77,39 +82,44 @@ def shrink_sphere_center(sim, r=None, shrink_factor=0.7, min_particles=100,
     elif isinstance(r, str) or issubclass(r.__class__, units.UnitBase):
         if isinstance(r, str):
             r = units.Unit(r)
-        r = r.in_units(sim['pos'].units, **sim.conversion_context())
+        r = r.in_units(sim["pos"].units, **sim.conversion_context())
 
-    mass = np.asarray(sim['mass'], dtype='double')
-    pos = np.asarray(sim['pos'], dtype='double')
+    mass = np.asarray(sim["mass"], dtype="double")
+    pos = np.asarray(sim["pos"], dtype="double")
 
-    R = _com.shrink_sphere_center(pos, mass, min_particles, particles_for_velocity,
-                                  shrink_factor, r, num_threads)
+    R = _com.shrink_sphere_center(
+        pos, mass, min_particles, particles_for_velocity, shrink_factor, r, num_threads
+    )
 
     com, final_radius, velocity_radius = R
 
     logger.info("Radius for velocity measurement = %s", velocity_radius)
     logger.info("Final SSC=%s", com)
 
-    com_to_return = array.SimArray(com, sim['pos'].units)
+    com_to_return = array.SimArray(com, sim["pos"].units)
 
     if particles_for_velocity > min_particles:
-        fam_filter = functools.reduce(operator.or_, (filt.FamilyFilter(f) for f in families_for_velocity))
+        fam_filter = functools.reduce(
+            operator.or_, (filt.FamilyFilter(f) for f in families_for_velocity)
+        )
         final_sphere = sim[filt.Sphere(velocity_radius, com) & fam_filter]
         logger.info("Particles in sphere = %d", len(final_sphere))
         if len(final_sphere) == 0:
-            warnings.warn("Final sphere is empty; cannot return a velocity. This probably implies something is "
-                          "wrong with the position centre too.", RuntimeWarning)
-            return com_to_return, np.array([0., 0., 0.])
+            warnings.warn(
+                "Final sphere is empty; cannot return a velocity. This probably implies something is "
+                "wrong with the position centre too.",
+                RuntimeWarning,
+            )
+            return com_to_return, np.array([0.0, 0.0, 0.0])
         else:
-            vel = final_sphere.mean_by_mass('vel')
+            vel = final_sphere.mean_by_mass("vel")
             logger.info("Final velocity=%s", vel)
             return com_to_return, vel
     else:
         return com_to_return
 
 
-
-def virial_radius(sim, cen=None, overden=178, r_max=None, rho_def='matter'):
+def virial_radius(sim, cen=None, overden=178, r_max=None, rho_def="matter"):
     """Calculate the virial radius of the halo centered on the given coordinates.
 
     The default is here defined by the sphere centered on cen which contains a
@@ -145,7 +155,7 @@ def virial_radius(sim, cen=None, overden=178, r_max=None, rho_def='matter'):
     """
 
     if r_max is None:
-        r_max = (sim["x"].max() - sim["x"].min())
+        r_max = sim["x"].max() - sim["x"].min()
     else:
         if cen is not None:
             sim = sim[filt.Sphere(r_max, cen)]
@@ -154,12 +164,18 @@ def virial_radius(sim, cen=None, overden=178, r_max=None, rho_def='matter'):
 
     r_min = 0.0
 
-    if rho_def == 'matter':
-       ref_density = sim.properties["omegaM0"] * cosmology.rho_crit(sim, z=0) * (1.0 + sim.properties["z"]) ** 3
-    elif rho_def == 'critical':
+    if rho_def == "matter":
+        ref_density = (
+            sim.properties["omegaM0"]
+            * cosmology.rho_crit(sim, z=0)
+            * (1.0 + sim.properties["z"]) ** 3
+        )
+    elif rho_def == "critical":
         ref_density = cosmology.rho_crit(sim, z=sim.properties["z"])
     else:
-        raise ValueError(rho_def + "is not a valid definition for the reference density")
+        raise ValueError(
+            rho_def + "is not a valid definition for the reference density"
+        )
 
     target_rho = overden * ref_density
     logger.info("target_rho=%s", target_rho)
@@ -172,12 +188,17 @@ def virial_radius(sim, cen=None, overden=178, r_max=None, rho_def='matter'):
     with transform:
         sim = sim[filt.Sphere(r_max)]
         with sim.immediate_mode:
-            mass_ar = np.asarray(sim['mass'])
-            r_ar = np.asarray(sim['r'])
+            mass_ar = np.asarray(sim["mass"])
+            r_ar = np.asarray(sim["r"])
 
-        rho = lambda r: util.sum_if_lt(mass_ar,r_ar,r)/(4. * math.pi * (r ** 3) / 3)
-        result = util.bisect(r_min, r_max, lambda r: target_rho -
-                                                     rho(r), epsilon=0, eta=1.e-3 * target_rho)
+        rho = lambda r: util.sum_if_lt(mass_ar, r_ar, r) / (4.0 * math.pi * (r**3) / 3)
+        result = util.bisect(
+            r_min,
+            r_max,
+            lambda r: target_rho - rho(r),
+            epsilon=0,
+            eta=1.0e-3 * target_rho,
+        )
 
     return result
 
@@ -187,7 +208,7 @@ def _potential_minimum(sim):
     return sim["pos"][i].copy()
 
 
-def hybrid_center(sim, r='3 kpc', **kwargs):
+def hybrid_center(sim, r="3 kpc", **kwargs):
     """Determine the center of the halo by finding the shrink-sphere-center near the potential minimum
 
     Most users will want to use the general :func:`center` function, which actually performs the centering operation.
@@ -219,7 +240,6 @@ def hybrid_center(sim, r='3 kpc', **kwargs):
     except KeyError:
         cen_a = center_of_mass(sim)
     return shrink_sphere_center(sim[filt.Sphere(r, cen_a)], **kwargs)
-
 
 
 def vel_center(sim, cen_size="1 kpc", return_cen=False, move_all=True, **kwargs):
@@ -257,7 +277,10 @@ def vel_center(sim, cen_size="1 kpc", return_cen=False, move_all=True, **kwargs)
 
     if "retcen" in kwargs:
         return_cen = kwargs.pop("retcen")
-        warnings.warn("The 'retcen' keyword is deprecated. Use 'return_cen' instead.", DeprecationWarning)
+        warnings.warn(
+            "The 'retcen' keyword is deprecated. Use 'return_cen' instead.",
+            DeprecationWarning,
+        )
 
     logger.info("Finding halo velocity center...")
 
@@ -277,9 +300,8 @@ def vel_center(sim, cen_size="1 kpc", return_cen=False, move_all=True, **kwargs)
         # very weird snapshot, or mis-centering!
         raise ValueError("Insufficient particles around center to get velocity")
 
-    vcen = (cen['vel'].transpose() * cen['mass']).sum(axis=1) / \
-        cen['mass'].sum()
-    vcen.units = cen['vel'].units
+    vcen = (cen["vel"].transpose() * cen["mass"]).sum(axis=1) / cen["mass"].sum()
+    vcen.units = cen["vel"].units
 
     logger.info("vcen=%s", vcen)
 
@@ -289,8 +311,17 @@ def vel_center(sim, cen_size="1 kpc", return_cen=False, move_all=True, **kwargs)
         return target.offset_velocity(-vcen)
 
 
-def center(sim, mode=None, return_cen=False, with_velocity=True, cen_size="1 kpc",
-           cen_num_particles=10000, move_all=True, wrap=False, **kwargs):
+def center(
+    sim,
+    mode=None,
+    return_cen=False,
+    with_velocity=True,
+    cen_size="1 kpc",
+    cen_num_particles=10000,
+    move_all=True,
+    wrap=False,
+    **kwargs,
+):
     """Transform the ancestor snapshot so that the provided snapshot is centred
 
     The centering scheme is determined by the ``mode`` keyword. As well as the
@@ -362,24 +393,33 @@ def center(sim, mode=None, return_cen=False, with_velocity=True, cen_size="1 kpc
 
     """
 
-    if 'vel' in kwargs:
-        warnings.warn("The 'vel' keyword is deprecated. Use 'with_velocity' instead.", DeprecationWarning)
-        with_velocity = kwargs.pop('vel')
+    if "vel" in kwargs:
+        warnings.warn(
+            "The 'vel' keyword is deprecated. Use 'with_velocity' instead.",
+            DeprecationWarning,
+        )
+        with_velocity = kwargs.pop("vel")
 
-    if 'retcen' in kwargs:
-        warnings.warn("The 'retcen' keyword is deprecated. Use 'return_cen' instead.", DeprecationWarning)
-        return_cen = kwargs.pop('retcen')
-
+    if "retcen" in kwargs:
+        warnings.warn(
+            "The 'retcen' keyword is deprecated. Use 'return_cen' instead.",
+            DeprecationWarning,
+        )
+        return_cen = kwargs.pop("retcen")
 
     global config
     if mode is None:
-        mode = config['centering-scheme']
+        mode = config["centering-scheme"]
 
     try:
-        fn = {'pot': _potential_minimum,
-              'com': lambda s : s.mean_by_mass('pos'),
-              'ssc': functools.partial(shrink_sphere_center, particles_for_velocity=cen_num_particles),
-              'hyb': hybrid_center}[mode]
+        fn = {
+            "pot": _potential_minimum,
+            "com": lambda s: s.mean_by_mass("pos"),
+            "ssc": functools.partial(
+                shrink_sphere_center, particles_for_velocity=cen_num_particles
+            ),
+            "hyb": hybrid_center,
+        }[mode]
     except KeyError:
         fn = mode
 
@@ -390,12 +430,12 @@ def center(sim, mode=None, return_cen=False, with_velocity=True, cen_size="1 kpc
 
     if wrap:
         # centre on something within the halo and wrap
-        initial_offset = -sim['pos'][0]
+        initial_offset = -sim["pos"][0]
         transform = target.translate(initial_offset)
         target.wrap()
     else:
         transform = transformation.NullTransformation(target)
-        initial_offset = np.array([0., 0., 0.])
+        initial_offset = np.array([0.0, 0.0, 0.0])
 
     try:
         centre = fn(sim, **kwargs)
@@ -412,7 +452,7 @@ def center(sim, mode=None, return_cen=False, with_velocity=True, cen_size="1 kpc
         transform = transform.translate(-centre)
 
         if with_velocity:
-            if vel_centre is None :
+            if vel_centre is None:
                 vel_centre = vel_center(sim, cen_size=cen_size, return_cen=True)
             logger.info("vel_centre=%s", vel_centre)
             transform = transform.offset_velocity(-vel_centre)
@@ -423,8 +463,9 @@ def center(sim, mode=None, return_cen=False, with_velocity=True, cen_size="1 kpc
 
     return transform
 
+
 @util.deprecated("halo_shape is deprecated. Use shape instead.")
-def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
+def halo_shape(sim, N=100, rin=None, rout=None, bins="equal"):
     """Deprecated wrapper around :func:`shape`, for backwards compatibility.
 
     The halo must be pre-centred, e.g. using :func:`center`.
@@ -471,17 +512,35 @@ def halo_shape(sim, N=100, rin=None, rout=None, bins='equal'):
         The rotation matrices for each shell.
     """
 
-    angle = lambda E: np.arccos(abs(E[:,0,0]))
+    angle = lambda E: np.arccos(abs(E[:, 0, 0]))
 
-    rbin, axis_lengths, num_particles, rotation_matrices = shape(sim.dm, nbins=N, rmin=rin, rmax=rout, bins=bins)
+    rbin, axis_lengths, num_particles, rotation_matrices = shape(
+        sim.dm, nbins=N, rmin=rin, rmax=rout, bins=bins
+    )
 
     ba = axis_lengths[:, 1] / axis_lengths[:, 0]
     ca = axis_lengths[:, 2] / axis_lengths[:, 0]
 
-    return rbin, ba.view(np.ndarray), ca.view(np.ndarray), angle(rotation_matrices), rotation_matrices
+    return (
+        rbin,
+        ba.view(np.ndarray),
+        ca.view(np.ndarray),
+        angle(rotation_matrices),
+        rotation_matrices,
+    )
 
-def shape(sim, nbins=100, rmin=None, rmax=None, bins='equal',
-          ndim=3, max_iterations=10, tol=1e-3, justify=False):
+
+def shape(
+    sim,
+    nbins=100,
+    rmin=None,
+    rmax=None,
+    bins="equal",
+    ndim=3,
+    max_iterations=10,
+    tol=1e-3,
+    justify=False,
+):
     """Calculates the shape of the provided particles in homeoidal shells, over a range of nbins radii.
 
     Homeoidal shells maintain a fixed area (ndim=2) or volume (ndim=3). Note that all provided particles are used in
@@ -551,8 +610,10 @@ def shape(sim, nbins=100, rmin=None, rmax=None, bins='equal',
     """
 
     # Sanitise inputs:
-    if (rmax == None): rmax = sim['r'].max()
-    if (rmin == None): rmin = rmax / 1E3
+    if rmax == None:
+        rmax = sim["r"].max()
+    if rmin == None:
+        rmin = rmax / 1e3
     assert ndim in [2, 3]
     assert max_iterations > 0
     assert tol > 0
@@ -560,10 +621,11 @@ def shape(sim, nbins=100, rmin=None, rmax=None, bins='equal',
     assert rmax > rmin
     assert nbins > 0
     if ndim == 2:
-        assert np.sum((sim['rxy'] >= rmin) & (sim['rxy'] < rmax)) > nbins * 2
+        assert np.sum((sim["rxy"] >= rmin) & (sim["rxy"] < rmax)) > nbins * 2
     elif ndim == 3:
-        assert np.sum((sim['r'] >= rmin) & (sim['r'] < rmax)) > nbins * 2
-    if bins not in ['equal', 'log', 'lin']: bins = 'equal'
+        assert np.sum((sim["r"] >= rmin) & (sim["r"] < rmax)) > nbins * 2
+    if bins not in ["equal", "log", "lin"]:
+        bins = "equal"
 
     # Handy 90 degree rotation matrices:
     Rx = np.array([[1, 0, 0], [0, 0, -1], [0, 1, 0]])
@@ -571,8 +633,9 @@ def shape(sim, nbins=100, rmin=None, rmax=None, bins='equal',
     Rz = np.array([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
 
     # -----------------------------FUNCTIONS-----------------------------
-    sn = lambda r, N: np.append([r[i * int(len(r) / N):(1 + i) * int(len(r) / N)][0] \
-                                 for i in range(N)], r[-1])
+    sn = lambda r, N: np.append(
+        [r[i * int(len(r) / N) : (1 + i) * int(len(r) / N)][0] for i in range(N)], r[-1]
+    )
 
     # General equation for an ellipse/ellipsoid:
     def Ellipsoid(pos, a, R):
@@ -581,11 +644,12 @@ def shape(sim, nbins=100, rmin=None, rmax=None, bins='equal',
 
     # Define moment of inertia tensor:
     def MoI(r, m, ndim=3):
-        return np.array([[np.sum(m * r[:, i] * r[:, j]) for j in range(ndim)] for i in range(ndim)])
+        return np.array(
+            [[np.sum(m * r[:, i] * r[:, j]) for j in range(ndim)] for i in range(ndim)]
+        )
 
     # Calculate the shape in a single shell:
     def shell_shape(r, pos, mass, a, R, r_range, ndim=3):
-
         # Find contents of homoeoidal shell:
         mult = r_range / np.mean(a)
         in_shell = (r > min(a) * mult[0]) & (r < max(a) * mult[1])
@@ -600,7 +664,9 @@ def shape(sim, nbins=100, rmin=None, rmax=None, bins='equal',
             return a, R, np.sum(in_ellipse)
 
         # Calculate shape tensor & diagonalise:
-        D = list(np.linalg.eigh(MoI(ellipse_pos, ellipse_mass, ndim) / np.sum(ellipse_mass)))
+        D = list(
+            np.linalg.eigh(MoI(ellipse_pos, ellipse_mass, ndim) / np.sum(ellipse_mass))
+        )
 
         # Rescale axis ratios to maintain constant ellipsoidal volume:
         R2 = np.array(D[1])
@@ -646,30 +712,29 @@ def shape(sim, nbins=100, rmin=None, rmax=None, bins='equal',
     # -----------------------------FUNCTIONS-----------------------------
 
     # Set up binning:
-    r = np.array(sim['r']) if ndim == 3 else np.array(sim['rxy'])
-    pos = np.array(sim['pos'])[:, :ndim]
-    mass = np.array(sim['mass'])
+    r = np.array(sim["r"]) if ndim == 3 else np.array(sim["rxy"])
+    pos = np.array(sim["pos"])[:, :ndim]
+    mass = np.array(sim["mass"])
 
-    if (bins == 'equal'):  # Bins contain equal number of particles
+    if bins == "equal":  # Bins contain equal number of particles
         full_bins = sn(np.sort(r[(r >= rmin) & (r <= rmax)]), nbins * 2)
-        bin_edges = full_bins[0:nbins * 2 + 1:2]
-        rbins = full_bins[1:nbins * 2 + 1:2]
-    elif (bins == 'log'):  # Bins are logarithmically spaced
+        bin_edges = full_bins[0 : nbins * 2 + 1 : 2]
+        rbins = full_bins[1 : nbins * 2 + 1 : 2]
+    elif bins == "log":  # Bins are logarithmically spaced
         bin_edges = np.logspace(np.log10(rmin), np.log10(rmax), nbins + 1)
         rbins = np.sqrt(bin_edges[:-1] * bin_edges[1:])
-    elif (bins == 'lin'):  # Bins are linearly spaced
+    elif bins == "lin":  # Bins are linearly spaced
         bin_edges = np.linspace(rmin, rmax, nbins + 1)
         rbins = 0.5 * (bin_edges[:-1] + bin_edges[1:])
 
     # Initialise the shape arrays:
-    rbins = array.SimArray(rbins, sim['pos'].units)
-    axis_lengths = array.SimArray(np.zeros([nbins, ndim]), sim['pos'].units)
-    N_in_bin = np.zeros(nbins).astype('int')
+    rbins = array.SimArray(rbins, sim["pos"].units)
+    axis_lengths = array.SimArray(np.zeros([nbins, ndim]), sim["pos"].units)
+    N_in_bin = np.zeros(nbins).astype("int")
     rotations = [0] * nbins
 
     # Loop over all radial bins:
     for i in range(nbins):
-
         # Initial spherical shell:
         a = np.ones(ndim) * rbins[i]
         a2 = np.zeros(ndim)
@@ -678,9 +743,10 @@ def shape(sim, nbins=100, rmin=None, rmax=None, bins='equal',
 
         # Iterate shape estimate until a convergence criterion is met:
         iteration_counter = 0
-        while ((np.abs(a[1] / a[0] - np.sort(a2)[-2] / max(a2)) > tol) & \
-               (np.abs(a[-1] / a[0] - min(a2) / max(a2)) > tol)) & \
-                (iteration_counter < max_iterations):
+        while (
+            (np.abs(a[1] / a[0] - np.sort(a2)[-2] / max(a2)) > tol)
+            & (np.abs(a[-1] / a[0] - min(a2) / max(a2)) > tol)
+        ) & (iteration_counter < max_iterations):
             a2 = a.copy()
             a, R, N = shell_shape(r, pos, mass, a, R, bin_edges[[i, i + 1]], ndim)
             iteration_counter += 1
